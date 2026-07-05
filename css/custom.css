@@ -1,0 +1,274 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    /* Paleta educativa: azul oceánico + verde esmeralda */
+    --primary-color: #1a73e8;    /* Azul Google / educativo */
+    --primary-hover: #1558b0;
+    --primary-light: rgba(26, 115, 232, 0.08);
+    --accent-color: #2e7d32;     /* Verde esmeralda */
+    --accent-hover: #1b5e20;
+    --accent-light: rgba(46, 125, 50, 0.08);
+    --bg-light: #f5f7fa;
+    --surface: #ffffff;
+    --text-dark: #1a1a2e;
+    --text-muted: #5f6c7b;
+    --border-color: #e4e9f0;
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.07);
+    --shadow-lg: 0 12px 28px rgba(0,0,0,0.08);
+}
+
+body {
+    margin: 0;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+}
+
+.public-navbar,
+.public-navbar-container,
+.public-navbar-brand,
+.public-navbar-logo {
+    background-color: #eef3fb !important;
+}
+
+.public-navbar-logo {
+    height: 48px;
+    max-width: 220px;
+    object-fit: contain;
+    display: block;
+    padding: 0;
+    margin: 0;
+}
+
+/* ─── Tarjetas de cursos (página pública) ─── */
+.course-card {
+    border: none;
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.course-card img {
+    height: 180px;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.course-card:hover img {
+    transform: scale(1.04);
+}
+
+/* ─── Encabezado público ─── */
+.header-premium {
+    background: linear-gradient(135deg, #1558b0 0%, #1a73e8 60%, #2e7d32 100%) !important;
+    position: relative;
+    overflow: hidden;
+    min-height: 280px;
+    display: flex;
+    align-items: center;
+}
+
+/* Fondo de la sección de cursos públicos */
+.courses-section {
+    background: linear-gradient(180deg, #eef3fb 0%, #f0f7f1 100%) !important;
+    min-height: 60vh;
+}
+
+.header-premium::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+/* ─── Barra lateral admin ─── */
+.admin-sidebar {
+    background: var(--surface);
+    border-radius: 14px;
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.admin-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.7rem 1rem;
+    color: var(--text-dark);
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 0.92rem;
+    transition: all 0.18s ease;
+    margin-bottom: 0.4rem;
+    gap: 0.6rem;
+}
+
+.admin-nav-link i {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    transition: color 0.18s ease;
+    width: 1.4rem;
+    text-align: center;
+}
+
+.admin-nav-link:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.admin-nav-link:hover i {
+    color: var(--primary-color);
+}
+
+.admin-nav-link.active {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(26, 115, 232, 0.28);
+}
+
+.admin-nav-link.active i {
+    color: #ffffff;
+}
+
+/* ─── Tarjetas de estadísticas ─── */
+.stat-card {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: var(--surface);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* ─── Etiquetas de cupo ─── */
+.badge-unlimited {
+    background-color: var(--accent-light);
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.badge-spots {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #c17d00;
+    font-weight: 600;
+}
+
+.badge-full {
+    background-color: rgba(220, 38, 38, 0.08);
+    color: #c62828;
+    font-weight: 600;
+}
+
+/* ─── Tablas ─── */
+.custom-table th {
+    background-color: #f0f4fb;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.73rem;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.custom-table td {
+    vertical-align: middle;
+    color: var(--text-dark);
+}
+
+.custom-table tbody tr:hover {
+    background-color: #f5f8ff;
+}
+
+/* ─── Modales ─── */
+.modal-content-premium {
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.12);
+}
+
+/* ─── Botones principales ─── */
+.btn-primary-premium {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 8px rgba(26, 115, 232, 0.2);
+}
+
+.btn-primary-premium:hover {
+    background-color: var(--primary-hover);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(26, 115, 232, 0.3);
+}
+
+.btn-accent-premium {
+    background-color: var(--accent-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 8px rgba(46, 125, 50, 0.2);
+}
+
+.btn-accent-premium:hover {
+    background-color: var(--accent-hover);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(46, 125, 50, 0.3);
+}
+
+/* ─── Formularios ─── */
+.form-control-premium {
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 0.6rem 0.85rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: #fff;
+}
+
+.form-control-premium:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+    outline: none;
+}
+
+/* ─── Roles: tarjetas de permiso ─── */
+.perm-card {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.perm-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(26,115,232,0.08);
+}
+
+.perm-card.active {
+    border-color: var(--primary-color);
+    background-color: var(--primary-light);
+}
