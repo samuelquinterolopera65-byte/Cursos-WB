@@ -31,7 +31,10 @@ $domainName = $_SERVER['HTTP_HOST'];
 $dir = dirname($_SERVER['PHP_SELF']);
 $rootDir = str_replace('/manage', '', $dir);
 $rootDir = rtrim($rootDir, '/\\');
-$course_url = $protocol . $domainName . $rootDir . '/index.php?curso_id=' . $course['id'];
+$course_url = $protocol . $domainName . ($rootDir !== '' ? $rootDir : '') . '/index.php?' . http_build_query([
+    'curso_id' => $course['id'],
+    'registro' => 1
+]);
 
 // URL de la API de QR Code para generar el código QR
 $qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" . urlencode($course_url);

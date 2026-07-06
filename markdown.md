@@ -3,7 +3,7 @@
 Este proyecto fue hecho con el fin de que los suarios que tengan este codigo puedan adminsitrar sus propios cursos dependiendo de la empresa en la que esten
 
 ## Descripcion
-Esta pagina permite la creación y administración de diversos cursos los que quiera crear los usuarios esta pagina es parametrisable por que le permite crear cirsos habilitarlos o desabilitarlos, la descarga de el QR directo a ese curso si lo necesita la implementación de materiales poder administrar si quiere que tenga un limite o que sea ilimitado, permite la administración de usuarios  a traves de roles y permisos, en el inicio puede categorizar por los ultimos 10 usuarios en general de cada curso le permite ver el nombre y la cantidad de participantes por curso, permite tambien la descarga masiva en excel o en su defecto personal de cada curso en caso de ser necesario tambien permite la posibilidad  de cargar imagenes de logo en caso de que quiera cambiar el logo
+Esta pagina permite la creación y administración de diversos cursos los que quiera crear los usuarios esta pagina es parametrisable por que le permite crear cursos habilitarlos o desabilitarlos, la descarga de el QR directo a ese curso si lo necesita la implementación de materiales poder administrar si quiere que tenga un limite o que sea ilimitado, permite la administración de usuarios  a traves de roles y permisos, en el inicio puede categorizar por los ultimos 10 usuarios en general de cada curso le permite ver el nombre y la cantidad de participantes por curso, permite tambien la descarga masiva en excel o en su defecto personal de cada curso en caso de ser necesario tambien permite la posibilidad  de cargar imagenes de logo en caso de que quiera cambiar el logo
 
 ## Tecnologias
 - PHP

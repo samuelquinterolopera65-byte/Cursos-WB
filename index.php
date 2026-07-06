@@ -13,6 +13,7 @@ $usuarioModel = new Usuario($conn);
 
 $message = '';
 $message_type = ''; // 'success', 'danger', 'warning'
+$selected_course_id = isset($_GET['curso_id']) ? intval($_GET['curso_id']) : 0;
 
 // Procesar el envío de inscripciones
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['register_course'])) {
@@ -142,7 +143,7 @@ require_once 'includes/public/header.php';
                         $descripcion_resumen = htmlspecialchars(strip_tags($c['descripcion']));
                         $descripcion_html = strip_tags($c['descripcion'], '<p><strong><em><u><a><ul><ol><li><br>');
                     ?>
-                        <div class="col mb-5">
+                        <div class="col mb-5" id="curso-<?php echo $c['id']; ?>">
                             <div class="card h-100 course-card">
                                 <!-- Capacity Badge -->
                                 <div class="position-absolute" style="top: 0.75rem; right: 0.75rem; z-index: 10;">
@@ -237,6 +238,9 @@ require_once 'includes/public/header.php';
                                                             <i class="bi bi-slash-circle-fill me-1"></i><strong>Curso completo</strong><br>Las inscripciones están bloqueadas ya que se alcanzó el límite de alumnos.
                                                         </div>
                                                     <?php else: ?>
+                                                        <div class="alert alert-info small rounded-3 mb-3">
+                                                            <i class="bi bi-person-plus-fill me-1"></i>No necesitas iniciar sesión. Completa tus datos y te registramos directamente en el curso.
+                                                        </div>
                                                         <form action="index.php" method="POST">
                                                             <input type="hidden" name="register_course" value="1">
                                                             <input type="hidden" name="curso_id" value="<?php echo $c['id']; ?>">
@@ -302,10 +306,22 @@ require_once 'includes/public/header.php';
             const urlParams = new URLSearchParams(window.location.search);
             const cursoId = urlParams.get('curso_id');
             if (cursoId) {
+                const courseCard = document.getElementById('curso-' + cursoId);
                 const modalElement = document.getElementById('courseModal-' + cursoId);
-                if (modalElement) {
-                    const modal = new bootstrap.Modal(modalElement);
-                    modal.show();
+
+                if (courseCard) {
+                    courseCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    setTimeout(function() {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                        const firstInput = modalElement.querySelector('input[name="nombre"]');
+                        if (firstInput) {
+                            firstInput.focus();
+                        }
+                    }, 220);
                 }
             }
         });
