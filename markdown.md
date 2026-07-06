@@ -36,7 +36,9 @@ Las actualizaciones pensadas hasta el momento de la consulta con el compañero a
 *Crear la opción de contacto 
 (Por si algo sale mas a la hora de registrarse o si tiene alguna inquietud poder comunicarse con la empresa sin ningun problema, la comunicacion seria atraves de sistema SMTP por correo electronico)
 
-Vendra mas opciones de mejora solo se espara a la consulta con el compañero para ver que mas puee aportar desde su punto de vista y experiencia 
+*Cambiar el PDF descargabke del QR por una imagen o si es preferible tener las 2 opciones tanto PDF como imagen
+
+Vendra mas opciones de mejora solo se espara a la consulta con el compañero para ver que mas puede aportar desde su punto de vista y experiencia de cada uno 
 
 ### Nota
 Gracias por leer el contenido del archivo, espero sea de utilidad y no muy cansón de leer. Disculpa la ortografía  si esta muy mala.
