@@ -238,9 +238,6 @@ require_once 'includes/public/header.php';
                                                             <i class="bi bi-slash-circle-fill me-1"></i><strong>Curso completo</strong><br>Las inscripciones están bloqueadas ya que se alcanzó el límite de alumnos.
                                                         </div>
                                                     <?php else: ?>
-                                                        <div class="alert alert-info small rounded-3 mb-3">
-                                                            <i class="bi bi-person-plus-fill me-1"></i>No necesitas iniciar sesión. Completa tus datos y te registramos directamente en el curso.
-                                                        </div>
                                                         <form action="index.php" method="POST">
                                                             <input type="hidden" name="register_course" value="1">
                                                             <input type="hidden" name="curso_id" value="<?php echo $c['id']; ?>">

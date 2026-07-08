@@ -37,8 +37,23 @@ Las actualizaciones pensadas hasta el momento de la consulta con el compañero a
 (Por si algo sale mas a la hora de registrarse o si tiene alguna inquietud poder comunicarse con la empresa sin ningun problema, la comunicacion seria atraves de sistema SMTP por correo electronico)
 
 *Cambiar el PDF descargabke del QR por una imagen o si es preferible tener las 2 opciones tanto PDF como imagen
-
 Vendra mas opciones de mejora solo se espara a la consulta con el compañero para ver que mas puede aportar desde su punto de vista y experiencia de cada uno 
+
+*Cambiar la posicion de los cupos en de los cursos, aun oarte donde tengan mas visibilidad en el resumen o en la modal del curso
+(La idea es que el usuario pueda ver el cupo disponible y saber si puede inscribirse o no)
+
+*Cambiar la ventana modal, donde se ven los cursos por una pagina completa donde se pueda ver mejor y tener mejor distribución
+
+*Organizar la inscripción de os cursos para que se inscriban por inicio de sesion (dependiendo el curso de la fecha que tenga cada curso)
+
+*Reconsultar la funcionalidad de moodle 
+
+*Crear el apartado de administracion de creacion de los cursos y el apartado que veran los participantes de dichos cursos
+
+*Organizar el apartado de los usuarios para que incluya nombre de quien, asignatura de la que se encarga, foto y demas información que surja
+
+*Implementar todo lo que pueda inspirarme de moodle en la pagina  
+
 
 ### Nota
 Gracias por leer el contenido del archivo, espero sea de utilidad y no muy cansón de leer. Disculpa la ortografía  si esta muy mala.

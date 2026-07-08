@@ -14,10 +14,10 @@
             <i class="bi bi-shield-check"></i> Roles y Permisos
         </a>
         <a class="admin-nav-link <?php echo $tab == 'inscripciones' ? 'active' : ''; ?>" href="index.php?tab=inscripciones">
-            <i class="bi bi-person-check"></i> Inscripciones
+            <i class="bi bi-person-check"></i> Inscripciones De Los Cursos
         </a>
         <a class="admin-nav-link <?php echo $tab == 'ajustes' ? 'active' : ''; ?>" href="index.php?tab=ajustes">
-            <i class="bi bi-gear"></i> Ajustes
+            <i class="bi bi-gear"></i> Configuración
         </a>
     </nav>
 </div>
