@@ -12,13 +12,8 @@ $error = '';
 $logoPath = $ajustesModel->get('logo');
 
 if (isset($_SESSION['user_id'])) {
-    if ($_SESSION['user_role'] == 1) {
-        header("Location: manage/index.php");
-        exit;
-    } else {
-        header("Location: index.php");
-        exit;
-    }
+    header("Location: index.php");
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -36,13 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_role'] = $user['rol_id'];
                 $_SESSION['user_role_name'] = $user['rol_nombre'];
 
-                if ($user['rol_id'] == 1) {
-                    header("Location: manage/index.php");
-                    exit;
-                } else {
-                    header("Location: index.php");
-                    exit;
-                }
+                header("Location: index.php");
+                exit;
             } else {
                 $error = 'Correo electrónico o contraseña incorrectos.';
             }

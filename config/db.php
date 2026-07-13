@@ -40,6 +40,8 @@ try {
         `password` VARCHAR(255) NOT NULL,
         `rol_id` INT NOT NULL,
         `permisos` TEXT DEFAULT NULL,
+        `asignatura` VARCHAR(100) DEFAULT NULL,
+        `foto` VARCHAR(255) DEFAULT NULL,
         `ultimo_acceso` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         `fecha_registro` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (`rol_id`) REFERENCES `roles`(`id`) ON DELETE RESTRICT
@@ -60,6 +62,7 @@ try {
         `descripcion` TEXT,
         `imagen` VARCHAR(255) DEFAULT NULL,
         `materiales` TEXT DEFAULT NULL,
+        `categoria` VARCHAR(100) DEFAULT NULL,
         `cupo_limite` INT DEFAULT NULL, -- NULL significa ilimitado
         `campos_requeridos` VARCHAR(255) DEFAULT 'nombre,email',
         `estado` TINYINT(1) DEFAULT 1, -- 1 = habilitado, 0 = deshabilitado
@@ -92,6 +95,10 @@ try {
     } catch (PDOException $e) {}
 
     try {
+        $conn->exec("ALTER TABLE `cursos` ADD COLUMN `categoria` VARCHAR(100) DEFAULT NULL");
+    } catch (PDOException $e) {}
+
+    try {
         $conn->exec("ALTER TABLE `inscripciones` ADD COLUMN `telefono` VARCHAR(50) DEFAULT NULL");
     } catch (PDOException $e) {}
     try {
@@ -105,30 +112,39 @@ try {
         $conn->exec("ALTER TABLE `usuarios` ADD COLUMN `permisos` TEXT DEFAULT NULL");
     } catch (PDOException $e) {}
     try {
+        $conn->exec("ALTER TABLE `usuarios` ADD COLUMN `asignatura` VARCHAR(100) DEFAULT NULL");
+    } catch (PDOException $e) {}
+    try {
+        $conn->exec("ALTER TABLE `usuarios` ADD COLUMN `foto` VARCHAR(255) DEFAULT NULL");
+    } catch (PDOException $e) {}
+    try {
         $conn->exec("ALTER TABLE `usuarios` ADD COLUMN `ultimo_acceso` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
     } catch (PDOException $e) {}
 
-    // Sembrar datos predeterminados si la tabla de roles está vacía
-    $rolesCount = $conn->query("SELECT COUNT(*) FROM `roles`")->fetchColumn();
-    if ($rolesCount == 0) {
-        $conn->exec("INSERT INTO `roles` (`id`, `nombre`) VALUES 
-            (1, 'Administrador'), 
-            (2, 'Editor');");
-    }
+    // Sembrar roles del LMS con los perfiles de usuario solicitados
+    $rolesSeed = [
+        [1, 'Administrador'],
+        [2, 'Creador de Cursos'],
+        [3, 'Profesor'],
+        [4, 'Profesor no editor'],
+        [5, 'Estudiante']
+    ];
 
-    // Garantizar que el rol 2 siempre use el nombre Editor
-    $conn->exec("UPDATE `roles` SET `nombre` = 'Editor' WHERE `id` = 2");
+    foreach ($rolesSeed as $roleData) {
+        $stmt = $conn->prepare("INSERT INTO `roles` (`id`, `nombre`) VALUES (:id, :nombre) ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`)");
+        $stmt->execute([':id' => $roleData[0], ':nombre' => $roleData[1]]);
+    }
 
     // Sembrar usuario administrador por defecto si la tabla de usuarios está vacía
     $usersCount = $conn->query("SELECT COUNT(*) FROM `usuarios`")->fetchColumn();
     if ($usersCount == 0) {
         $adminPass = password_hash("admin123", PASSWORD_DEFAULT);
-        $adminPerms = "crear_cursos,editar_cursos,eliminar_cursos,gestionar_usuarios,gestionar_servicios,descargar_excel,gestionar_ajustes";
+        $adminPerms = "crear_cursos,editar_cursos,eliminar_cursos,gestionar_usuarios,gestionar_servicios,descargar_excel,gestionar_ajustes,instalar_complementos,crear_cuentas,configurar_estetica,reportes_globales,ver_panel_tecnico,ver_administracion_sitio";
         $conn->exec("INSERT INTO `usuarios` (`nombre`, `email`, `password`, `rol_id`, `permisos`) VALUES 
             ('Administrador del Sistema', 'admin@cursoswb.com', '$adminPass', 1, '$adminPerms');");
     } else {
         // Asegurar que el administrador sembrado tenga permisos en caso de que la tabla haya sido creada previamente
-        $conn->exec("UPDATE `usuarios` SET `permisos` = 'crear_cursos,editar_cursos,eliminar_cursos,gestionar_usuarios,gestionar_servicios,descargar_excel,gestionar_ajustes' WHERE `rol_id` = 1 AND (`permisos` IS NULL OR `permisos` = '')");
+        $conn->exec("UPDATE `usuarios` SET `permisos` = 'crear_cursos,editar_cursos,eliminar_cursos,gestionar_usuarios,gestionar_servicios,descargar_excel,gestionar_ajustes,instalar_complementos,crear_cuentas,configurar_estetica,reportes_globales,ver_panel_tecnico,ver_administracion_sitio' WHERE `rol_id` = 1 AND (`permisos` IS NULL OR `permisos` = '')");
     }
 
     // Sembrar servicios iniciales si está vacía
@@ -143,10 +159,10 @@ try {
     // Sembrar cursos iniciales si está vacía
     $coursesCount = $conn->query("SELECT COUNT(*) FROM `cursos`")->fetchColumn();
     if ($coursesCount == 0) {
-        $conn->exec("INSERT INTO `cursos` (`titulo`, `descripcion`, `imagen`, `materiales`, `cupo_limite`, `campos_requeridos`, `estado`) VALUES 
-            ('Curso de PHP Moderno y PDO', 'Aprende PHP 8 desde las bases hasta la conexión segura a bases de datos con PDO, arquitectura MVC y buenas prácticas.', 'https://images.unsplash.com/photo-1599507593499-a3f7d7d97667?auto=format&fit=crop&w=450&h=300&q=80', 'Manual de PHP en PDF\r\nRepositorio de código en GitHub\r\nEjercicios prácticos de consultas SQL', NULL, 'nombre,email', 1),
-            ('Bootstrap 5 Avanzado y Maquetación Web', 'Domina el diseño responsivo, personalización con Sass, animaciones de componentes y maquetación de proyectos reales.', 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=450&h=300&q=80', 'Plantilla HTML base de Bootstrap\r\nHojas de trucos CSS (Cheatsheets)\r\nAcceso a iconos premium', 2, 'nombre,email,telefono', 1),
-            ('Base de Datos MySQL y Optimización de Consultas', 'Diseño de bases de datos relacionales, normalización, índices, optimización de queries complejas y backups.', 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=450&h=300&q=80', 'Diagrama Entidad-Relación de ejemplo\r\nScript SQL con base de datos de pruebas\r\nGuía de optimización en PDF', 10, 'nombre,email,telefono,edad,empresa', 1);");
+        $conn->exec("INSERT INTO `cursos` (`titulo`, `descripcion`, `imagen`, `materiales`, `categoria`, `cupo_limite`, `campos_requeridos`, `estado`) VALUES 
+            ('Curso de PHP Moderno y PDO', 'Aprende PHP 8 desde las bases hasta la conexión segura a bases de datos con PDO, arquitectura MVC y buenas prácticas.', 'https://images.unsplash.com/photo-1599507593499-a3f7d7d97667?auto=format&fit=crop&w=450&h=300&q=80', 'Manual de PHP en PDF\r\nRepositorio de código en GitHub\r\nEjercicios prácticos de consultas SQL', 'Programación', NULL, 'nombre,email', 1),
+            ('Bootstrap 5 Avanzado y Maquetación Web', 'Domina el diseño responsivo, personalización con Sass, animaciones de componentes y maquetación de proyectos reales.', 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=450&h=300&q=80', 'Plantilla HTML base de Bootstrap\r\nHojas de trucos CSS (Cheatsheets)\r\nAcceso a iconos premium', 'Diseño Web', 2, 'nombre,email,telefono', 1),
+            ('Base de Datos MySQL y Optimización de Consultas', 'Diseño de bases de datos relacionales, normalización, índices, optimización de queries complejas y backups.', 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=450&h=300&q=80', 'Diagrama Entidad-Relación de ejemplo\r\nScript SQL con base de datos de pruebas\r\nGuía de optimización en PDF', 'Bases de Datos', 10, 'nombre,email,telefono,edad,empresa', 1);");
     }
 
     // Sembrar configuraciones por defecto si está vacía

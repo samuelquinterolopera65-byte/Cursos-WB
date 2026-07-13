@@ -8,8 +8,8 @@ require_once '../models/Ajustes.php';
 
 session_start();
 
-// Verify user is administrator
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 1) {
+// Verify access to the manage area for admin or course creators
+if (!isset($_SESSION['user_role']) || !in_array((int) $_SESSION['user_role'], [1, 2], true)) {
     header("Location: ../login.php");
     exit;
 }
@@ -90,6 +90,64 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['action'])) {
             header("Location: index.php?tab=ajustes&success=" . urlencode($success) . "&error=" . urlencode($error));
             exit;
         }
+        elseif ($action == 'delete_category' && $id > 0) {
+            if (!$usuarioModel->hasPermission($_SESSION['user_id'], 'gestionar_ajustes')) {
+                $error = 'No tienes permiso para gestionar categorías.';
+            } else {
+                $stmt = $conn->prepare("DELETE FROM lc_categorias WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+                $success = 'Categoría eliminada con éxito.';
+            }
+            header("Location: index.php?tab=categorias&success=" . urlencode($success) . "&error=" . urlencode($error));
+            exit;
+        }
+        elseif ($action == 'delete_blog' && $id > 0) {
+            if (!$usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')) {
+                $error = 'No tienes permiso para eliminar artículos.';
+            } else {
+                $stmt = $conn->prepare("SELECT imagen FROM lc_blog WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+                $img = $stmt->fetchColumn();
+                if (!empty($img) && file_exists('../' . $img)) {
+                    unlink('../' . $img);
+                }
+                
+                $stmt = $conn->prepare("DELETE FROM lc_blog WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+                $success = 'Artículo de blog eliminado con éxito.';
+            }
+            header("Location: index.php?tab=blog&success=" . urlencode($success) . "&error=" . urlencode($error));
+            exit;
+        }
+        elseif ($action == 'delete_event' && $id > 0) {
+            if (!$usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')) {
+                $error = 'No tienes permiso para eliminar eventos.';
+            } else {
+                $stmt = $conn->prepare("DELETE FROM lc_eventos WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+                $success = 'Evento eliminado con éxito.';
+            }
+            header("Location: index.php?tab=eventos&success=" . urlencode($success) . "&error=" . urlencode($error));
+            exit;
+        }
+        elseif ($action == 'delete_media' && $id > 0) {
+            if (!$usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')) {
+                $error = 'No tienes permiso para eliminar archivos.';
+            } else {
+                $stmt = $conn->prepare("SELECT ruta FROM lc_multimedia WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+                $path = $stmt->fetchColumn();
+                if (!empty($path) && file_exists('../' . $path)) {
+                    unlink('../' . $path);
+                }
+                
+                $stmt = $conn->prepare("DELETE FROM lc_multimedia WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+                $success = 'Archivo eliminado de la biblioteca.';
+            }
+            header("Location: index.php?tab=multimedia&success=" . urlencode($success) . "&error=" . urlencode($error));
+            exit;
+        }
     } catch (PDOException $e) {
         $error = 'Error al procesar la acción: ' . $e->getMessage();
     }
@@ -109,13 +167,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 $email = trim($_POST['email']);
                 $password = $_POST['password'];
                 $rol_id = intval($_POST['rol_id']);
+                $asignatura = trim($_POST['asignatura'] ?? '');
+                $foto = trim($_POST['foto'] ?? '');
                 $permisos_arr = isset($_POST['permisos']) ? $_POST['permisos'] : [];
                 $permisos = implode(',', $permisos_arr);
 
                 if (empty($nombre) || empty($email) || empty($password)) {
                     $error = 'Todos los campos son obligatorios.';
                 } else {
-                    $usuarioModel->create($nombre, $email, $password, $rol_id, $permisos);
+                    $usuarioModel->create($nombre, $email, $password, $rol_id, $permisos, $asignatura, $foto);
                     $success = 'Usuario creado con éxito.';
                 }
             }
@@ -133,13 +193,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 $email = trim($_POST['email']);
                 $rol_id = intval($_POST['rol_id']);
                 $password = $_POST['password'];
+                $asignatura = trim($_POST['asignatura'] ?? '');
+                $foto = trim($_POST['foto'] ?? '');
                 $permisos_arr = isset($_POST['permisos']) ? $_POST['permisos'] : [];
                 $permisos = implode(',', $permisos_arr);
 
                 if (empty($nombre) || empty($email)) {
                     $error = 'Nombre y correo son obligatorios.';
                 } else {
-                    $usuarioModel->update($id, $nombre, $email, $rol_id, $password, $permisos);
+                    $usuarioModel->update($id, $nombre, $email, $rol_id, $password, $permisos, $asignatura, $foto);
                     $success = 'Usuario actualizado con éxito.';
                 }
             }
@@ -238,6 +300,117 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             header("Location: index.php?tab=ajustes&success=" . urlencode($success) . "&error=" . urlencode($error));
             exit;
         }
+        // Add Category (Fase 3)
+        elseif ($action == 'add_category') {
+            if (!$usuarioModel->hasPermission($_SESSION['user_id'], 'gestionar_ajustes')) {
+                $error = 'No tienes permiso para gestionar categorías.';
+            } else {
+                $nombre = trim($_POST['nombre']);
+                $descripcion = trim($_POST['descripcion'] ?? '');
+                if (empty($nombre)) {
+                    $error = 'El nombre de la categoría es obligatorio.';
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO lc_categorias (nombre, descripcion) VALUES (:nombre, :descripcion)");
+                    $stmt->execute(['nombre' => $nombre, 'descripcion' => $descripcion]);
+                    $success = 'Categoría creada con éxito.';
+                }
+            }
+            header("Location: index.php?tab=categorias&success=" . urlencode($success) . "&error=" . urlencode($error));
+            exit;
+        }
+
+        // Add Blog Post (Fase 3)
+        elseif ($action == 'add_blog') {
+            if (!$usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')) {
+                $error = 'No tienes permiso para crear artículos del blog.';
+            } else {
+                $titulo = trim($_POST['titulo']);
+                $contenido = trim($_POST['contenido']);
+                $imagen = '';
+                
+                if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                    $file_tmp = $_FILES['imagen']['tmp_name'];
+                    $file_name = $_FILES['imagen']['name'];
+                    $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                    if (in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
+                        $new_name = 'blog_' . time() . '.' . $ext;
+                        $dest = '../uploads/' . $new_name;
+                        if (move_uploaded_file($file_tmp, $dest)) {
+                            $imagen = 'uploads/' . $new_name;
+                        }
+                    }
+                }
+
+                if (empty($titulo) || empty($contenido)) {
+                    $error = 'Título y contenido son obligatorios.';
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO lc_blog (titulo, contenido, imagen, autor_id) VALUES (:titulo, :contenido, :imagen, :autor_id)");
+                    $stmt->execute(['titulo' => $titulo, 'contenido' => $contenido, 'imagen' => $imagen, 'autor_id' => $_SESSION['user_id']]);
+                    $success = 'Artículo publicado con éxito.';
+                }
+            }
+            header("Location: index.php?tab=blog&success=" . urlencode($success) . "&error=" . urlencode($error));
+            exit;
+        }
+
+        // Add Event (Fase 3)
+        elseif ($action == 'add_event') {
+            if (!$usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')) {
+                $error = 'No tienes permiso para crear eventos.';
+            } else {
+                $titulo = trim($_POST['titulo']);
+                $descripcion = trim($_POST['descripcion'] ?? '');
+                $fecha = trim($_POST['fecha_evento']);
+                $tipo = trim($_POST['tipo'] ?? 'webinar');
+                $enlace = trim($_POST['enlace'] ?? '');
+
+                if (empty($titulo) || empty($fecha)) {
+                    $error = 'Título y fecha del evento son obligatorios.';
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO lc_eventos (titulo, descripcion, fecha_evento, tipo, enlace) VALUES (:titulo, :descripcion, :fecha, :tipo, :enlace)");
+                    $stmt->execute(['titulo' => $titulo, 'descripcion' => $descripcion, 'fecha' => $fecha, 'tipo' => $tipo, 'enlace' => $enlace]);
+                    $success = 'Evento programado con éxito.';
+                }
+            }
+            header("Location: index.php?tab=eventos&success=" . urlencode($success) . "&error=" . urlencode($error));
+            exit;
+        }
+
+        // Upload Media (Fase 3)
+        elseif ($action == 'upload_media') {
+            if (!$usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')) {
+                $error = 'No tienes permiso para subir archivos.';
+            } else {
+                if (isset($_FILES['archivo']) && $_FILES['archivo']['error'] === UPLOAD_ERR_OK) {
+                    $file_tmp = $_FILES['archivo']['tmp_name'];
+                    $file_name = $_FILES['archivo']['name'];
+                    $file_size = $_FILES['archivo']['size'];
+                    $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                    
+                    if (!is_dir('../uploads/multimedia')) {
+                        mkdir('../uploads/multimedia', 0777, true);
+                    }
+
+                    $new_name = 'media_' . time() . '_' . rand(100,999) . '.' . $ext;
+                    $dest = '../uploads/multimedia/' . $new_name;
+
+                    if (move_uploaded_file($file_tmp, $dest)) {
+                        $ruta_rel = 'uploads/multimedia/' . $new_name;
+                        $etiquetas = trim($_POST['etiquetas'] ?? '');
+                        
+                        $stmt = $conn->prepare("INSERT INTO lc_multimedia (nombre, ruta, tipo, tamano, etiquetas) VALUES (:nombre, :ruta, :tipo, :tamano, :etiquetas)");
+                        $stmt->execute(['nombre' => $file_name, 'ruta' => $ruta_rel, 'tipo' => $ext, 'tamano' => $file_size, 'etiquetas' => $etiquetas]);
+                        $success = 'Archivo subido con éxito a la biblioteca.';
+                    } else {
+                        $error = 'Error al mover el archivo subido.';
+                    }
+                } else {
+                    $error = 'Por favor selecciona un archivo válido.';
+                }
+            }
+            header("Location: index.php?tab=multimedia&success=" . urlencode($success) . "&error=" . urlencode($error));
+            exit;
+        }
     } catch (PDOException $e) {
         $error = 'Error en base de datos: ' . $e->getMessage();
         header("Location: index.php?tab=" . $tab . "&error=" . urlencode($error));
@@ -261,6 +434,13 @@ try {
     $total_registrations = $inscripcionModel->countAll();
     $online_users = $usuarioModel->countOnline();
 
+    // Consultas para tendencias y distribución (Fase 3: Analytics)
+    $trendStmt = $conn->query("SELECT DATE_FORMAT(fecha_inscripcion, '%b %Y') AS mes, COUNT(*) AS total FROM inscripciones GROUP BY DATE_FORMAT(fecha_inscripcion, '%Y-%m') ORDER BY DATE_FORMAT(fecha_inscripcion, '%Y-%m') ASC LIMIT 6");
+    $trendData = $trendStmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $catStmt = $conn->query("SELECT COALESCE(cat.nombre, 'Sin Categoría') AS categoria, COUNT(c.id) AS total FROM lc_cursos c LEFT JOIN lc_categorias cat ON cat.id = c.categoria_id GROUP BY cat.nombre");
+    $catData = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+
     // Obtener los últimos 10 usuarios registrados (filtrado opcional por curso)
     $dashboard_curso_id = isset($_GET['dashboard_curso_id']) && $_GET['dashboard_curso_id'] !== 'all' ? intval($_GET['dashboard_curso_id']) : null;
     $last_registrations = $inscripcionModel->getLastTen($dashboard_curso_id);
@@ -275,6 +455,9 @@ try {
     
     // Always fetch active courses to populate selects/filters
     $all_active_courses = $cursoModel->getEnabled();
+    $published_courses = count($all_active_courses);
+    $draft_courses = max(0, $total_courses - $published_courses);
+    $recent_courses = array_slice($all_active_courses, 0, 4);
 
     if ($tab == 'cursos') {
         $cursos = $cursoModel->getAll();
@@ -290,13 +473,23 @@ try {
         $registros = $inscripcionModel->getAll($filter_curso_id);
     } elseif ($tab == 'ajustes') {
         $logoPath = $ajustesModel->get('logo');
+    } elseif ($tab == 'categorias') {
+        $categorias = $conn->query("SELECT * FROM lc_categorias ORDER BY nombre ASC")->fetchAll(PDO::FETCH_ASSOC);
+    } elseif ($tab == 'multimedia') {
+        $multimedia = $conn->query("SELECT * FROM lc_multimedia ORDER BY creado_en DESC")->fetchAll(PDO::FETCH_ASSOC);
+    } elseif ($tab == 'blog') {
+        $posts = $conn->query("SELECT b.*, u.nombre AS autor_nombre FROM lc_blog b JOIN usuarios u ON b.autor_id = u.id ORDER BY b.creado_en DESC")->fetchAll(PDO::FETCH_ASSOC);
+    } elseif ($tab == 'eventos') {
+        $eventos = $conn->query("SELECT * FROM lc_eventos ORDER BY fecha_evento ASC")->fetchAll(PDO::FETCH_ASSOC);
+    } elseif ($tab == 'auditoria') {
+        $logs = $conn->query("SELECT a.*, COALESCE(u.nombre, 'Sistema/Invitado') AS usuario_nombre FROM lc_auditoria a LEFT JOIN usuarios u ON a.usuario_id = u.id ORDER BY a.creado_en DESC LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
     }
 
 } catch (PDOException $e) {
     $error = 'Error al cargar datos: ' . $e->getMessage();
 }
 
-$page_title = 'Panel de Administración - Cursos-WB';
+$page_title = 'Panel de Administración - Northstar LMS';
 // Include modular admin layout header
 require_once '../includes/manage/header.php';
 ?>
@@ -331,64 +524,179 @@ require_once '../includes/manage/header.php';
                 
                 <!-- ================= TAB: DASHBOARD ================= -->
                 <?php if ($tab == 'dashboard'): ?>
-                    <h3 class="fw-bold text-dark mb-4">Panel de Control</h3>
-                    
-                    <!-- Cuadrícula de Estadísticas -->
-                    <div class="row g-4 mb-5">
-                        <div class="col-md-4 col-sm-6">
+                    <div class="card dashboard-hero border-0 rounded-4 shadow-sm p-4 p-lg-5 mb-4">
+                        <div class="row align-items-center g-4">
+                            <div class="col-lg-8">
+                                <div class="text-uppercase small text-primary fw-bold mb-2">Panel del profesor</div>
+                                <h3 class="fw-bold text-dark mb-3">Gestiona tus cursos, estudiantes y publicaciones desde un solo lugar</h3>
+                                <p class="text-muted mb-0">Tu espacio de trabajo está listo para crear experiencias educativas más completas, publicar contenidos y hacer seguimiento del progreso.</p>
+                                <div class="d-flex flex-wrap gap-2 mt-4">
+                                    <a href="crear_curso.php" class="btn btn-primary-premium"><i class="bi bi-plus-circle me-1"></i>Crear nuevo curso</a>
+                                    <a href="index.php?tab=cursos" class="btn btn-outline-primary rounded-pill"><i class="bi bi-journal-text me-1"></i>Administrar cursos</a>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="bg-white rounded-4 p-3 shadow-sm border">
+                                    <div class="small text-muted fw-bold mb-2">Resumen rápido</div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted">Cursos publicados</span>
+                                        <strong class="text-primary"><?php echo $published_courses; ?></strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted">Borradores</span>
+                                        <strong class="text-warning"><?php echo $draft_courses; ?></strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted">Inscripciones</span>
+                                        <strong class="text-success"><?php echo $total_registrations; ?></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6 col-xl-3">
                             <div class="card stat-card p-4">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
                                         <h6 class="text-muted small fw-bold text-uppercase mb-1">Cursos</h6>
                                         <h2 class="fw-bold mb-0 text-primary"><?php echo $total_courses; ?></h2>
                                     </div>
-                                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3">
-                                        <i class="bi bi-journal-text fs-4"></i>
-                                    </div>
+                                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3"><i class="bi bi-journal-text fs-4"></i></div>
                                 </div>
-                                <div class="mt-2 text-muted small">
-                                    <span><?php echo $active_courses; ?> visibles en el sitio</span>
-                                </div>
+                                <div class="mt-2 text-muted small"><span><?php echo $published_courses; ?> publicados · <?php echo $draft_courses; ?> borradores</span></div>
                             </div>
                         </div>
-                        <div class="col-md-4 col-sm-6">
+                        <div class="col-md-6 col-xl-3">
                             <div class="card stat-card p-4">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <h6 class="text-muted small fw-bold text-uppercase mb-1">Usuarios</h6>
+                                        <h6 class="text-muted small fw-bold text-uppercase mb-1">Inscripciones</h6>
                                         <h2 class="fw-bold mb-0 text-success"><?php echo $total_registrations; ?></h2>
                                     </div>
-                                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3">
-                                        <i class="bi bi-people-fill fs-4"></i>
-                                    </div>
+                                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3"><i class="bi bi-people-fill fs-4"></i></div>
                                 </div>
-                                <div class="mt-2 text-muted small">
-                                    <span>Total de Usuarios en la Pagina</span>
-                                </div>
+                                <div class="mt-2 text-muted small"><span>Estudiantes activos en tus cursos</span></div>
                             </div>
                         </div>
-                        <div class="col-md-4 col-sm-6">
+                        <div class="col-md-6 col-xl-3">
                             <div class="card stat-card p-4">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <h6 class="text-muted small fw-bold text-uppercase mb-1">En Línea</h6>
+                                        <h6 class="text-muted small fw-bold text-uppercase mb-1">En línea</h6>
                                         <h2 class="fw-bold mb-0 text-teal" style="color: var(--accent-color);"><?php echo $online_users; ?></h2>
                                     </div>
-                                    <div class="bg-info bg-opacity-10 text-teal rounded-3 p-3" style="color: var(--accent-color); background-color: rgba(13, 148, 136, 0.1);">
-                                        <i class="bi bi-wifi fs-4"></i>
-                                    </div>
+                                    <div class="bg-info bg-opacity-10 text-teal rounded-3 p-3" style="color: var(--accent-color); background-color: rgba(13, 148, 136, 0.1);"><i class="bi bi-wifi fs-4"></i></div>
                                 </div>
-                                <div class="mt-2 text-muted small">
-                                    <span>Usuarios activos últ. 5 min</span>
+                                <div class="mt-2 text-muted small"><span>Usuarios activos en los últimos 5 minutos</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-xl-3">
+                            <div class="card stat-card p-4">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted small fw-bold text-uppercase mb-1">Actividad</h6>
+                                        <h2 class="fw-bold mb-0 text-primary"><?php echo count($last_registrations); ?></h2>
+                                    </div>
+                                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3"><i class="bi bi-clock-history fs-4"></i></div>
+                                </div>
+                                <div class="mt-2 text-muted small"><span>Últimos registros recientes</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos de Analíticas y KPIs (Fase 3: Analytics) -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-8">
+                            <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold mb-0"><i class="bi bi-graph-up text-primary me-2"></i>Tendencia de Inscripciones</h5>
+                                    <span class="small text-muted">Historial de registros</span>
+                                </div>
+                                <div style="height: 280px; position: relative;">
+                                    <canvas id="enrollmentTrendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card border-0 rounded-4 shadow-sm p-4 bg-white h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold mb-0"><i class="bi bi-pie-chart text-primary me-2"></i>Distribución de Cursos</h5>
+                                    <span class="small text-muted">Por Categoría</span>
+                                </div>
+                                <div style="height: 280px; position: relative; max-width: 250px; margin: 0 auto;">
+                                    <canvas id="categoryDistributionChart"></canvas>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Tabla de 10 Últimos Usuarios Registrados -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-7">
+                            <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                                    <h5 class="fw-bold mb-0"><i class="bi bi-lightning-charge me-2 text-primary"></i>Acciones rápidas</h5>
+                                    <span class="small text-muted">Todo listo para avanzar</span>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <a href="crear_curso.php" class="dashboard-action-card d-block p-3 rounded-4 border h-100 text-decoration-none">
+                                            <div class="d-flex align-items-center mb-2"><i class="bi bi-plus-circle-fill text-primary fs-4 me-2"></i><span class="fw-bold text-dark">Crear curso</span></div>
+                                            <div class="small text-muted">Inicia un nuevo curso con el asistente paso a paso.</div>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <a href="index.php?tab=cursos" class="dashboard-action-card d-block p-3 rounded-4 border h-100 text-decoration-none">
+                                            <div class="d-flex align-items-center mb-2"><i class="bi bi-journal-text text-success fs-4 me-2"></i><span class="fw-bold text-dark">Gestionar cursos</span></div>
+                                            <div class="small text-muted">Revisa, publica, edita o desactiva tus contenidos.</div>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <a href="index.php?tab=inscripciones" class="dashboard-action-card d-block p-3 rounded-4 border h-100 text-decoration-none">
+                                            <div class="d-flex align-items-center mb-2"><i class="bi bi-person-check-fill text-info fs-4 me-2"></i><span class="fw-bold text-dark">Inscripciones</span></div>
+                                            <div class="small text-muted">Consulta y filtra los estudiantes inscritos.</div>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <a href="../index.php" class="dashboard-action-card d-block p-3 rounded-4 border h-100 text-decoration-none">
+                                            <div class="d-flex align-items-center mb-2"><i class="bi bi-globe2 text-warning fs-4 me-2"></i><span class="fw-bold text-dark">Ver sitio</span></div>
+                                            <div class="small text-muted">Ve cómo se ve la plataforma para los estudiantes.</div>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="card border-0 rounded-4 shadow-sm p-4 bg-white h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold mb-0"><i class="bi bi-journal-bookmark me-2 text-primary"></i>Cursos destacados</h5>
+                                    <a href="index.php?tab=cursos" class="small text-primary text-decoration-none">Ver todos</a>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <?php if (count($recent_courses) > 0): ?>
+                                        <?php foreach ($recent_courses as $course): ?>
+                                            <div class="border rounded-3 p-3">
+                                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                                    <div>
+                                                        <div class="fw-bold text-dark"><?php echo htmlspecialchars($course['titulo']); ?></div>
+                                                        <div class="small text-muted"><?php echo htmlspecialchars($course['categoria'] ?: 'Sin categoría'); ?></div>
+                                                    </div>
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary"><?php echo $course['estado'] == 1 ? 'Publicado' : 'Borrador'; ?></span>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <div class="text-muted small">Aún no hay cursos para mostrar.</div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-                            <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>10 Últimos Usuarios Registrados</h5>
+                            <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Últimos registros</h5>
                             <div class="d-flex align-items-center gap-2">
                                 <label for="filter_curso_dashboard" class="small fw-bold text-muted mb-0">Filtrar por curso:</label>
                                 <select id="filter_curso_dashboard" class="form-select form-select-sm" style="width: auto; max-width: 200px;" onchange="filterDashboardCourse(this.value)">
@@ -448,6 +756,7 @@ require_once '../includes/manage/header.php';
                                         <th>Imagen</th>
                                         <th>Título</th>
                                         <th>Capacidad</th>
+                                        <th>Categoría</th>
                                         <th>Inscritos</th>
                                         <th>Estado</th>
                                         <th class="text-end">Acciones</th>
@@ -472,6 +781,13 @@ require_once '../includes/manage/header.php';
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
+                                                    <?php if (!empty($c['categoria'])): ?>
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary p-2"><?php echo htmlspecialchars($c['categoria']); ?></span>
+                                                    <?php else: ?>
+                                                        <span class="text-muted small">Sin categoría</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
                                                     <span class="fw-bold"><?php echo $c['inscritos']; ?></span>
                                                     <?php if (!is_null($c['cupo_limite']) && $c['inscritos'] >= $c['cupo_limite']): ?>
                                                         <span class="badge bg-danger ms-1">Lleno</span>
@@ -490,8 +806,11 @@ require_once '../includes/manage/header.php';
                                                             <a href="index.php?action=toggle_course_status&id=<?php echo $c['id']; ?>" class="btn btn-sm <?php echo $c['estado'] == 1 ? 'btn-outline-warning' : 'btn-outline-success'; ?>" title="<?php echo $c['estado'] == 1 ? 'Deshabilitar' : 'Habilitar'; ?>">
                                                                 <i class="bi <?php echo $c['estado'] == 1 ? 'bi-eye-slash' : 'bi-eye'; ?>"></i>
                                                             </a>
-                                                            <a href="editar_curso.php?id=<?php echo $c['id']; ?>" class="btn btn-sm btn-outline-primary" title="Editar">
+                                                            <a href="editar_curso.php?id=<?php echo $c['id']; ?>" class="btn btn-sm btn-outline-primary" title="Editar General">
                                                                 <i class="bi bi-pencil"></i>
+                                                            </a>
+                                                            <a href="course_builder.php?course_id=<?php echo $c['id']; ?>" class="btn btn-sm btn-outline-success" title="Constructor Visual">
+                                                                <i class="bi bi-diagram-3"></i>
                                                             </a>
                                                         <?php endif; ?>
                                                         <a href="descargar_qr.php?id=<?php echo $c['id']; ?>" target="_blank" class="btn btn-sm btn-outline-dark" title="Descargar flyer QR">
@@ -508,7 +827,7 @@ require_once '../includes/manage/header.php';
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="6" class="text-center py-4 text-muted">No hay cursos registrados.</td>
+                                            <td colspan="7" class="text-center py-4 text-muted">No hay cursos registrados.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
@@ -533,6 +852,7 @@ require_once '../includes/manage/header.php';
                                     <tr>
                                         <th>Nombre</th>
                                         <th>Email</th>
+                                        <th>Asignatura</th>
                                         <th>Rol</th>
                                         <th>Actividad</th>
                                         <th>Fecha Registro</th>
@@ -547,6 +867,13 @@ require_once '../includes/manage/header.php';
                                             <tr>
                                                 <td class="fw-bold"><?php echo htmlspecialchars($u['nombre']); ?></td>
                                                 <td><?php echo htmlspecialchars($u['email']); ?></td>
+                                                <td>
+                                                    <?php if (!empty($u['asignatura'])): ?>
+                                                        <span class="badge bg-info bg-opacity-10 text-info p-2"><?php echo htmlspecialchars($u['asignatura']); ?></span>
+                                                    <?php else: ?>
+                                                        <span class="text-muted small">Sin asignatura</span>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td>
                                                     <?php if ($u['rol_id'] == 1): ?>
                                                         <span class="badge bg-danger bg-opacity-10 text-danger p-2"><i class="bi bi-shield-fill-check me-1"></i><?php echo htmlspecialchars($u['rol_nombre']); ?></span>
@@ -572,6 +899,8 @@ require_once '../includes/manage/header.php';
                                                                     data-bs-nombre="<?php echo htmlspecialchars($u['nombre']); ?>"
                                                                     data-bs-email="<?php echo htmlspecialchars($u['email']); ?>"
                                                                     data-bs-rol="<?php echo $u['rol_id']; ?>"
+                                                                    data-bs-asignatura="<?php echo htmlspecialchars($u['asignatura'] ?? ''); ?>"
+                                                                    data-bs-foto="<?php echo htmlspecialchars($u['foto'] ?? ''); ?>"
                                                                     data-bs-permisos="<?php echo htmlspecialchars($u['permisos']); ?>"
                                                                     title="Editar">
                                                                 <i class="bi bi-pencil"></i>
@@ -589,7 +918,7 @@ require_once '../includes/manage/header.php';
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="6" class="text-center py-4 text-muted">No hay usuarios registrados.</td>
+                                            <td colspan="7" class="text-center py-4 text-muted">No hay usuarios registrados.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
@@ -729,7 +1058,7 @@ require_once '../includes/manage/header.php';
                                         <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 mb-2">
                                             <i class="bi bi-journal-bookmark-fill fs-1"></i>
                                         </div>
-                                        <span class="fw-bold fs-5 text-primary">Cursos-WB</span>
+                                        <span class="fw-bold fs-5 text-primary">Northstar LMS</span>
                                         <span class="badge bg-secondary p-2 mt-2">Por Defecto (Texto)</span>
                                     <?php endif; ?>
                                 </div>
@@ -758,11 +1087,424 @@ require_once '../includes/manage/header.php';
                     </div>
                 <?php endif; ?>
 
+                <!-- ================= TAB: CATEGORIAS (Fase 3) ================= -->
+                <?php if ($tab == 'categorias'): ?>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-bold text-dark mb-0">Gestión de Categorías</h3>
+                        <?php if ($usuarioModel->hasPermission($_SESSION['user_id'], 'gestionar_ajustes')): ?>
+                            <button class="btn btn-primary-premium animate-hover" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                                <i class="bi bi-plus-circle me-1"></i>Crear Categoría
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                        <div class="table-responsive">
+                            <table class="table custom-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th>Fecha Creación</th>
+                                        <th class="text-end">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (count($categorias) > 0): ?>
+                                        <?php foreach ($categorias as $cat): ?>
+                                            <tr>
+                                                <td class="fw-bold text-dark"><?php echo htmlspecialchars($cat['nombre']); ?></td>
+                                                <td class="text-muted small"><?php echo htmlspecialchars($cat['descripcion'] ?: 'Sin descripción.'); ?></td>
+                                                <td class="text-muted small"><?php echo htmlspecialchars($cat['creado_en']); ?></td>
+                                                <td class="text-end">
+                                                    <?php if ($usuarioModel->hasPermission($_SESSION['user_id'], 'gestionar_ajustes')): ?>
+                                                        <a href="index.php?action=delete_category&id=<?php echo $cat['id']; ?>" class="btn btn-sm btn-outline-danger" title="Eliminar" onclick="return confirm('¿Estás seguro de que quieres eliminar esta categoría?');">
+                                                            <i class="bi bi-trash"></i>
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <span class="text-muted small">No autorizado</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted">No hay categorías registradas.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- ================= TAB: MULTIMEDIA (Fase 3) ================= -->
+                <?php if ($tab == 'multimedia'): ?>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-bold text-dark mb-0">Biblioteca de Medios</h3>
+                        <?php if ($usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')): ?>
+                            <button class="btn btn-primary-premium animate-hover" data-bs-toggle="modal" data-bs-target="#uploadMediaModal">
+                                <i class="bi bi-upload me-1"></i>Subir Archivo
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="row g-4">
+                        <?php if (count($multimedia) > 0): ?>
+                            <?php foreach ($multimedia as $media): ?>
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card border rounded-4 bg-white shadow-sm overflow-hidden h-100">
+                                        <div class="position-relative bg-light p-3 d-flex align-items-center justify-content-center border-bottom" style="height: 140px;">
+                                            <?php if (in_array(strtolower($media['tipo']), ['png', 'jpg', 'jpeg', 'webp', 'gif'])): ?>
+                                                <img src="../<?php echo htmlspecialchars($media['ruta']); ?>" class="img-fluid rounded" style="max-height: 120px; object-fit: contain;">
+                                            <?php else: ?>
+                                                <div class="text-center text-secondary">
+                                                    <i class="bi bi-file-earmark-arrow-down-fill display-5 text-primary"></i>
+                                                    <div class="small fw-semibold mt-1 text-uppercase text-muted"><?php echo htmlspecialchars($media['tipo']); ?></div>
+                                                </div>
+                                            <?php endif; ?>
+                                            <span class="position-absolute top-0 end-0 badge bg-dark bg-opacity-70 m-2 small"><?php echo htmlspecialchars(strtoupper($media['tipo'])); ?></span>
+                                        </div>
+                                        <div class="p-3">
+                                            <div class="fw-bold text-dark text-truncate small" title="<?php echo htmlspecialchars($media['nombre']); ?>"><?php echo htmlspecialchars($media['nombre']); ?></div>
+                                            <div class="text-muted small mt-1">Peso: <?php echo round($media['tamano'] / 1024, 1); ?> KB</div>
+                                            <?php if (!empty($media['etiquetas'])): ?>
+                                                <div class="mt-2"><span class="badge bg-light text-muted border"><?php echo htmlspecialchars($media['etiquetas']); ?></span></div>
+                                            <?php endif; ?>
+                                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                                <a href="../<?php echo htmlspecialchars($media['ruta']); ?>" target="_blank" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 small" style="font-size: 0.75rem;"><i class="bi bi-eye"></i> Ver URL</a>
+                                                <?php if ($usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')): ?>
+                                                    <a href="index.php?action=delete_media&id=<?php echo $media['id']; ?>" class="text-danger small text-decoration-none" onclick="return confirm('¿Eliminar este archivo permanentemente?');"><i class="bi bi-trash"></i> Borrar</a>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="col-12 text-center py-5 text-muted bg-white border rounded-4">
+                                <i class="bi bi-images display-3 text-muted mb-2"></i>
+                                <p class="mb-0">No hay archivos en la biblioteca de medios todavía.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- ================= TAB: BLOG (Fase 3) ================= -->
+                <?php if ($tab == 'blog'): ?>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-bold text-dark mb-0">Artículos y Blog</h3>
+                        <?php if ($usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')): ?>
+                            <button class="btn btn-primary-premium animate-hover" data-bs-toggle="modal" data-bs-target="#addBlogPostModal">
+                                <i class="bi bi-plus-circle me-1"></i>Crear Artículo
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                        <div class="table-responsive">
+                            <table class="table custom-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Portada</th>
+                                        <th>Título</th>
+                                        <th>Autor</th>
+                                        <th>Estado</th>
+                                        <th>Fecha</th>
+                                        <th class="text-end">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (count($posts) > 0): ?>
+                                        <?php foreach ($posts as $post): ?>
+                                            <tr>
+                                                <td>
+                                                    <?php if (!empty($post['imagen'])): ?>
+                                                        <img src="../<?php echo htmlspecialchars($post['imagen']); ?>" class="rounded" style="width: 50px; height: 35px; object-fit: cover;">
+                                                    <?php else: ?>
+                                                        <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 50px; height: 35px;"><i class="bi bi-image small"></i></div>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="fw-bold text-dark"><?php echo htmlspecialchars($post['titulo']); ?></td>
+                                                <td><?php echo htmlspecialchars($post['autor_nombre']); ?></td>
+                                                <td><span class="badge bg-success bg-opacity-10 text-success p-2"><?php echo htmlspecialchars($post['estado']); ?></span></td>
+                                                <td class="text-muted small"><?php echo htmlspecialchars($post['creado_en']); ?></td>
+                                                <td class="text-end">
+                                                    <?php if ($usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')): ?>
+                                                        <a href="index.php?action=delete_blog&id=<?php echo $post['id']; ?>" class="btn btn-sm btn-outline-danger" title="Eliminar" onclick="return confirm('¿Seguro de que deseas eliminar este artículo?');">
+                                                            <i class="bi bi-trash"></i>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4 text-muted">No hay artículos publicados en el blog.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- ================= TAB: EVENTOS (Fase 3) ================= -->
+                <?php if ($tab == 'eventos'): ?>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-bold text-dark mb-0">Eventos & Webinars</h3>
+                        <?php if ($usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')): ?>
+                            <button class="btn btn-primary-premium animate-hover" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                                <i class="bi bi-calendar-plus me-1"></i>Programar Evento
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                        <div class="table-responsive">
+                            <table class="table custom-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Título</th>
+                                        <th>Fecha y Hora</th>
+                                        <th>Tipo</th>
+                                        <th>Enlace de Acceso</th>
+                                        <th class="text-end">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (count($eventos) > 0): ?>
+                                        <?php foreach ($eventos as $ev): ?>
+                                            <tr>
+                                                <td class="fw-bold text-dark"><?php echo htmlspecialchars($ev['titulo']); ?></td>
+                                                <td class="text-muted small"><?php echo htmlspecialchars($ev['fecha_evento']); ?></td>
+                                                <td><span class="badge bg-primary bg-opacity-10 text-primary p-2"><?php echo htmlspecialchars($ev['tipo']); ?></span></td>
+                                                <td>
+                                                    <?php if (!empty($ev['enlace'])): ?>
+                                                        <a href="<?php echo htmlspecialchars($ev['enlace']); ?>" target="_blank" class="small text-truncate d-inline-block text-primary" style="max-width: 200px;"><i class="bi bi-box-arrow-up-right me-1"></i>Ir a la sesión</a>
+                                                    <?php else: ?>
+                                                        <span class="text-muted small">Sin enlace</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="text-end">
+                                                    <?php if ($usuarioModel->hasPermission($_SESSION['user_id'], 'crear_cursos')): ?>
+                                                        <a href="index.php?action=delete_event&id=<?php echo $ev['id']; ?>" class="btn btn-sm btn-outline-danger" title="Eliminar" onclick="return confirm('¿Seguro de que deseas cancelar este evento?');">
+                                                            <i class="bi bi-trash"></i>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-muted">No hay eventos programados.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- ================= TAB: AUDITORIA (Fase 3) ================= -->
+                <?php if ($tab == 'auditoria'): ?>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-bold text-dark mb-0">Logs de Auditoría y Logs</h3>
+                        <span class="badge bg-light text-muted border p-2">Monitoreo de seguridad activo</span>
+                    </div>
+
+                    <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                        <p class="text-muted small mb-4">Registro cronológico detallado de las actividades e inicios de sesión de la plataforma LMS corporativa.</p>
+                        <div class="table-responsive">
+                            <table class="table custom-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Acción realizada</th>
+                                        <th>Detalles adicionales</th>
+                                        <th>IP origen</th>
+                                        <th>Fecha y Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (count($logs) > 0): ?>
+                                        <?php foreach ($logs as $log): ?>
+                                            <tr>
+                                                <td class="fw-bold text-dark"><?php echo htmlspecialchars($log['usuario_nombre']); ?></td>
+                                                <td><span class="badge bg-dark bg-opacity-10 text-dark p-2"><?php echo htmlspecialchars($log['accion']); ?></span></td>
+                                                <td class="text-muted small"><?php echo htmlspecialchars($log['detalle']); ?></td>
+                                                <td class="font-monospace small"><?php echo htmlspecialchars($log['ip']); ?></td>
+                                                <td class="text-muted small"><?php echo htmlspecialchars($log['creado_en']); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-muted">Aún no hay logs registrados en el sistema.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
             </div>
         </div>
     </div>
 
     <!-- ================= MODALS ================= -->
+
+    <!-- Modal: Crear Categoría -->
+    <div class="modal fade" id="addCategoryModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-premium p-3">
+                <div class="modal-header border-0">
+                    <h5 class="fw-bold"><i class="bi bi-tags text-primary me-2"></i>Nueva Categoría</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="index.php?tab=categorias" method="POST">
+                    <div class="modal-body border-0">
+                        <input type="hidden" name="action" value="add_category">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Nombre de la Categoría <span class="text-danger">*</span></label>
+                            <input type="text" name="nombre" class="form-control form-control-premium" placeholder="Ej. Programación Web" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Descripción</label>
+                            <textarea name="descripcion" class="form-control form-control-premium" rows="3" placeholder="Describe brevemente esta categoría..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary-premium px-4"><i class="bi bi-plus-circle me-1"></i>Crear Categoría</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Subir Multimedia -->
+    <div class="modal fade" id="uploadMediaModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-premium p-3">
+                <div class="modal-header border-0">
+                    <h5 class="fw-bold"><i class="bi bi-upload text-primary me-2"></i>Subir Archivo a la Biblioteca</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="index.php?tab=multimedia" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body border-0">
+                        <input type="hidden" name="action" value="upload_media">
+                        <div class="mb-4 p-4 border-2 border-dashed rounded-4 text-center bg-light" style="border: 2px dashed var(--border-color);">
+                            <i class="bi bi-cloud-upload display-5 text-primary mb-3 d-block"></i>
+                            <p class="text-muted small mb-3">Selecciona imágenes, videos, PDFs, Word, Excel, audio o cualquier archivo multimedia.</p>
+                            <input type="file" name="archivo" id="mediaFile" class="form-control form-control-premium" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Etiquetas (separadas por comas)</label>
+                            <input type="text" name="etiquetas" class="form-control form-control-premium" placeholder="Ej. video, introducción, módulo1">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary-premium px-4"><i class="bi bi-upload me-1"></i>Subir Archivo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crear Artículo de Blog -->
+    <div class="modal fade" id="addBlogPostModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content modal-content-premium p-3">
+                <div class="modal-header border-0">
+                    <h5 class="fw-bold"><i class="bi bi-file-earmark-post text-primary me-2"></i>Nuevo Artículo del Blog</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="index.php?tab=blog" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body border-0">
+                        <input type="hidden" name="action" value="add_blog">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Título del artículo <span class="text-danger">*</span></label>
+                                    <input type="text" name="titulo" class="form-control form-control-premium" placeholder="Ej. 5 estrategias para aprender más rápido" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Contenido <span class="text-danger">*</span></label>
+                                    <textarea name="contenido" class="form-control form-control-premium" rows="8" placeholder="Escribe el cuerpo completo del artículo aquí..." required></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Imagen de portada</label>
+                                    <input type="file" name="imagen" class="form-control form-control-premium" accept=".png,.jpg,.jpeg,.webp,.gif">
+                                    <div class="form-text small text-muted">PNG, JPG, WEBP. Recomendado 1200×630.</div>
+                                </div>
+                                <div class="p-3 bg-light rounded-3 small text-muted border">
+                                    <i class="bi bi-info-circle text-primary me-1"></i>
+                                    El artículo se publicará inmediatamente. Puedes editar el estado desde la tabla de artículos.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary-premium px-4"><i class="bi bi-send me-1"></i>Publicar Artículo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Programar Evento / Webinar -->
+    <div class="modal fade" id="addEventModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-premium p-3">
+                <div class="modal-header border-0">
+                    <h5 class="fw-bold"><i class="bi bi-calendar-plus text-primary me-2"></i>Programar Evento / Webinar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="index.php?tab=eventos" method="POST">
+                    <div class="modal-body border-0">
+                        <input type="hidden" name="action" value="add_event">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label small fw-bold">Título del evento <span class="text-danger">*</span></label>
+                                <input type="text" name="titulo" class="form-control form-control-premium" placeholder="Ej. Webinar de Inteligencia Artificial 2026" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Tipo de evento</label>
+                                <select name="tipo" class="form-select form-control-premium">
+                                    <option value="webinar">Webinar</option>
+                                    <option value="conferencia">Conferencia</option>
+                                    <option value="taller">Taller Práctico</option>
+                                    <option value="seminario">Seminario</option>
+                                    <option value="workshop">Workshop</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Descripción</label>
+                                <textarea name="descripcion" class="form-control form-control-premium" rows="3" placeholder="Describe de qué trata el evento y a quién va dirigido..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Fecha y Hora <span class="text-danger">*</span></label>
+                                <input type="datetime-local" name="fecha_evento" class="form-control form-control-premium" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Enlace de acceso (Zoom / Meet / Teams)</label>
+                                <input type="url" name="enlace" class="form-control form-control-premium" placeholder="https://zoom.us/j/...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary-premium px-4"><i class="bi bi-calendar-check me-1"></i>Programar Evento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Add User Modal -->
     <div class="modal fade" id="addUserModal" tabindex="-1">
@@ -798,6 +1540,17 @@ require_once '../includes/manage/header.php';
                                         <option value="<?php echo $r['id']; ?>"><?php echo htmlspecialchars($r['nombre']); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="add_user_asignatura" class="form-label small fw-bold">Asignatura / Área</label>
+                                <input type="text" name="asignatura" id="add_user_asignatura" class="form-control form-control-premium" placeholder="Ej. Matemáticas, Programación">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="add_user_foto" class="form-label small fw-bold">Foto / URL de Perfil</label>
+                                <input type="text" name="foto" id="add_user_foto" class="form-control form-control-premium" placeholder="https://...">
                             </div>
                         </div>
                         
@@ -887,6 +1640,17 @@ require_once '../includes/manage/header.php';
                                 </select>
                             </div>
                         </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="edit_user_asignatura" class="form-label small fw-bold">Asignatura / Área</label>
+                                <input type="text" name="asignatura" id="edit_user_asignatura" class="form-control form-control-premium" placeholder="Ej. Matemáticas, Programación">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="edit_user_foto" class="form-label small fw-bold">Foto / URL de Perfil</label>
+                                <input type="text" name="foto" id="edit_user_foto" class="form-control form-control-premium" placeholder="https://...">
+                            </div>
+                        </div>
                         
                         <!-- ACL Permissions Checklist -->
                         <div class="p-3 bg-light rounded-3 border mt-2">
@@ -939,7 +1703,73 @@ require_once '../includes/manage/header.php';
 
     <!-- Scripts JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Render Chart.js graphs if we are on the dashboard (Fase 3: Analytics)
+        <?php if ($tab == 'dashboard'): ?>
+        const trendData = <?php echo json_encode($trendData); ?>;
+        const catData = <?php echo json_encode($catData); ?>;
+        
+        // Enrollment Trend Chart (Line Chart)
+        const trendCtx = document.getElementById('enrollmentTrendChart')?.getContext('2d');
+        if (trendCtx) {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: trendData.map(item => item.mes),
+                    datasets: [{
+                        label: 'Inscritos',
+                        data: trendData.map(item => item.total),
+                        borderColor: '#1a73e8',
+                        backgroundColor: 'rgba(26, 115, 232, 0.08)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#1a73e8'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Category Distribution Chart (Doughnut Chart)
+        const catCtx = document.getElementById('categoryDistributionChart')?.getContext('2d');
+        if (catCtx) {
+            new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: catData.map(item => item.categoria),
+                    datasets: [{
+                        data: catData.map(item => item.total),
+                        backgroundColor: ['#1a73e8', '#2e7d32', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+        <?php endif; ?>
+
         // Filtrar el panel de control por el curso seleccionado
         function filterDashboardCourse(val) {
             window.location.href = 'index.php?tab=dashboard&dashboard_curso_id=' + val;
@@ -973,6 +1803,8 @@ require_once '../includes/manage/header.php';
                 editUserModal.querySelector('#edit_user_email').value = email;
                 editUserModal.querySelector('#edit_user_rol_id').value = rol;
                 editUserModal.querySelector('#edit_user_password').value = '';
+                editUserModal.querySelector('#edit_user_asignatura').value = button.getAttribute('data-bs-asignatura') || '';
+                editUserModal.querySelector('#edit_user_foto').value = button.getAttribute('data-bs-foto') || '';
                 
                 // Configurar casillas de verificación de permisos ACL
                 var permArray = permisos.split(',');

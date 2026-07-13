@@ -37,7 +37,7 @@ class Inscripcion {
                     i.id AS inscripcion_id, 
                     COALESCE(NULLIF(u.nombre, ''), CONCAT('Participante #', i.id)) AS usuario_nombre, 
                     u.email AS usuario_email, 
-                    c.titulo AS curso_titulo, 
+                    c.nombre AS curso_titulo, 
                     i.telefono AS usuario_telefono,
                     i.edad AS usuario_edad,
                     i.empresa AS usuario_empresa,
@@ -45,7 +45,7 @@ class Inscripcion {
                     r.nombre AS rol_nombre
                   FROM inscripciones i
                   JOIN usuarios u ON i.usuario_id = u.id
-                  JOIN cursos c ON i.curso_id = c.id
+                  JOIN lc_cursos c ON i.curso_id = c.id
                   JOIN roles r ON u.rol_id = r.id";
                   
         if (!is_null($curso_id) && $curso_id > 0) {
@@ -71,11 +71,11 @@ class Inscripcion {
                     i.id,
                     COALESCE(NULLIF(u.nombre, ''), CONCAT('Participante #', i.id)) AS user_name,
                     u.email AS user_email,
-                    COALESCE(c.titulo, 'Curso eliminado') AS course_title,
+                    COALESCE(c.nombre, 'Curso eliminado') AS course_title,
                     i.fecha_inscripcion
                   FROM inscripciones i
                   LEFT JOIN usuarios u ON i.usuario_id = u.id
-                  LEFT JOIN cursos c ON i.curso_id = c.id";
+                  LEFT JOIN lc_cursos c ON i.curso_id = c.id";
                   
         if (!is_null($curso_id) && $curso_id > 0) {
             $query .= " WHERE i.curso_id = :curso_id";

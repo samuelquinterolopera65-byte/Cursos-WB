@@ -6,8 +6,8 @@ require_once '../models/Curso.php';
 
 session_start();
 
-// Verificar que el usuario sea administrador
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 1) {
+// Verificar que el usuario tenga permisos de administración o reportes globales
+if (!isset($_SESSION['user_role']) || !in_array((int) $_SESSION['user_role'], [1], true)) {
     header("Location: ../login.php");
     exit;
 }

@@ -28,32 +28,32 @@ Este proyecto se encuentra actualmente en desarrollo y ya se cargo la version 1.
 Este proyecto nace de la idea de un Aprendiz de SENA con la problemática de crear una pagina para la inscripción de cursos y la administración de los mismos, permitiendo administrador poder dar a conocer sus cursos disponibles y al usuario para que pueda interactuar y inscribirse a los diversos cursos
 
 ## Actualizacion
-Las actualizaciones pensadas hasta el momento de la consulta con el compañero a cargo son las siguientes:
+Las actualizaciones pensadas hasta el momento, tras la consulta con el compañero a cargo, son las siguientes:
 
-*Incluir categorías que se puedan escribir
-(Permitir crear los cursos en diversas categorias dependiendo de los cursos que maneje la empresa y que los usuarios que consulten la pagina puedan ver las categorias y inscribirse en los Cursos que esten mas interesados en partisipar)
+### Propuesta de estructura inspirada en Moodle
+- Categorías de cursos: permitir agrupar los cursos por temáticas o departamentos para mantener el sitio ordenado.
+- Cursos: ser el entorno principal donde los docentes presenten contenidos y los alumnos interactúen.
+- Secciones o temas: dividir el curso por semanas, unidades o módulos.
+- Recursos: incluir materiales de lectura como archivos, páginas o etiquetas.
+- Actividades: permitir herramientas interactivas como foros, tareas, cuestionarios y wikis.
+- Bloques laterales: ofrecer columnas personalizables con utilidades adicionales como listado de participantes, calificaciones, eventos próximos o administración.
+- Estructura organizacional: en versiones corporativas, incluir jerarquías de departamentos y posiciones laborales para gestionar roles y permisos.
+- Configurar el apartado de las notas del curso, colocar la visibilidad por barra de porcentaje para mostrar el proceso del estudiante mediante las actividades desarrolladas en ese curso
+- Gestion de tareas para e apartado de los profesores (Permitir la carga de videos, PDF, audios), permitir la calificación en diversos formatos y permitir el apartado de comentarios tanto del estudiante como del profesor hacia los alumnos
+- Metos de calificación y evaluacion incluir cuestionarios, encuestas, tareas y calificación personalizada 
+- Cambiar la interfas del manage para dividirla en 2 partes el administrador de los usuarios y el partado de los profesores para crear los cursos
 
-*Crear la opción de contacto 
-(Por si algo sale mas a la hora de registrarse o si tiene alguna inquietud poder comunicarse con la empresa sin ningun problema, la comunicacion seria atraves de sistema SMTP por correo electronico)
-
-*Cambiar el PDF descargabke del QR por una imagen o si es preferible tener las 2 opciones tanto PDF como imagen
-Vendra mas opciones de mejora solo se espara a la consulta con el compañero para ver que mas puede aportar desde su punto de vista y experiencia de cada uno 
-
-*Cambiar la posicion de los cupos en de los cursos, aun oarte donde tengan mas visibilidad en el resumen o en la modal del curso
-(La idea es que el usuario pueda ver el cupo disponible y saber si puede inscribirse o no)
-
-*Cambiar la ventana modal, donde se ven los cursos por una pagina completa donde se pueda ver mejor y tener mejor distribución
-
-*Organizar la inscripción de os cursos para que se inscriban por inicio de sesion (dependiendo el curso de la fecha que tenga cada curso)
-
-*Reconsultar la funcionalidad de moodle 
-
-*Crear el apartado de administracion de creacion de los cursos y el apartado que veran los participantes de dichos cursos
-
-*Organizar el apartado de los usuarios para que incluya nombre de quien, asignatura de la que se encarga, foto y demas información que surja
-
-*Implementar todo lo que pueda inspirarme de moodle en la pagina  
-
+### Mejoras propuestas
+- Incluir categorías de cursos que puedan crearse y administrarse.
+- Crear la opción de contacto mediante correo electrónico con sistema SMTP.
+- Cambiar el PDF descargable del QR por una imagen o permitir ambas opciones.
+- Mostrar los cupos disponibles de forma más visible en el resumen y en la ventana modal del curso.
+- Cambiar la ventana modal por una vista completa del curso con mejor distribución.
+- Organizar la inscripción a los cursos por medio de inicio de sesión, considerando la fecha de cada curso.
+- Crear un apartado de administración para la creación de cursos y otro para los participantes.
+- Organizar el apartado de usuarios con datos como nombre, asignatura, foto y otra información relevante.
+- Implementar funcionalidades inspiradas en Moodle.
+- Reconsultar la funcionalidad de Moodle.
 
 ### Nota
-Gracias por leer el contenido del archivo, espero sea de utilidad y no muy cansón de leer. Disculpa la ortografía  si esta muy mala.
+Gracias por leer el contenido del archivo, espero sea de utilidad y no muy cansón de leer. Disculpa la ortografía si está muy mala.
